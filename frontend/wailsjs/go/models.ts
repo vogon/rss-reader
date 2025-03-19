@@ -28,6 +28,7 @@ export namespace main {
 	    LastUpdatedISO?: string;
 	    ArticleTitle: string;
 	    ArticleLede: string;
+	    LatestArticlePubDateISO: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new FeedViewModel(source);
@@ -40,6 +41,7 @@ export namespace main {
 	        this.LastUpdatedISO = source["LastUpdatedISO"];
 	        this.ArticleTitle = source["ArticleTitle"];
 	        this.ArticleLede = source["ArticleLede"];
+	        this.LatestArticlePubDateISO = source["LatestArticlePubDateISO"];
 	    }
 	}
 

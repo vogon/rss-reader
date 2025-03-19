@@ -5,10 +5,11 @@ import { useEffect, useState } from 'react';
 import { useForm } from "react-hook-form";
 import { main } from "../wailsjs/go/models";
 import { AddFeed, Feeds } from "../wailsjs/go/main/App";
-import { FeedCard, FeedCardProps } from "./FeedCard";
+import { FeedCard, FeedCardProps } from "./features/feed-list/FeedCard";
 import { useAppDispatch, useAppSelector } from "./app/hooks";
 import { fetchFeedList, selectFeedListState } from "./features/feed-list/feed-list-slice";
 import { selectArticles } from "./features/article-feed/article-feed-slice";
+import { FeedView } from "./features/article-feed/FeedView";
 
 type AddFeedFormData = {
     url: string
@@ -17,7 +18,6 @@ type AddFeedFormData = {
 function App() {
     const dispatch = useAppDispatch();
     const feedListState = useAppSelector(selectFeedListState);
-    const articles = useAppSelector(selectArticles);
     const [isAddFeedOpen, setIsAddFeedOpen] = useState<boolean>(false);
     const { register, handleSubmit } = useForm<AddFeedFormData>({
         defaultValues: {
@@ -97,20 +97,7 @@ function App() {
 
             {/* main pane */}
             <div className="flex flex-col gap-12 flex-1 overflow-auto">
-                {
-                    articles.map((article) => {
-                        return <article key={article.GUID} className="border-2 rounded-box m-4 p-4">
-                            <h1 className="text-2xl font-bold">{article.Title}</h1>
-                            <p className="italic">published at {article.PubDateISO}</p>
-                            <p className="line-clamp-4">{article.Description}</p>
-                        </article>
-                    })
-                }
-                <ul>
-                    {
-                        articles.map((article) => <li key={article.GUID}>{article.Title}</li>)
-                    }
-                </ul>
+                <FeedView />
             </div>
 
             {/* <div id="result" className="result">{resultText}</div>

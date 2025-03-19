@@ -4,19 +4,22 @@ import (
 	"context"
 	"log"
 	"time"
+
+	wailsrt "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
 type App struct {
-	ctx   context.Context
-	store *Store
+	ctx         context.Context
+	store       *Store
+	autofetches []autofetchState
 }
 
-// type appFeedState struct {
-// 	feed
-// 	feedId      string
-// 	fetchTicker time.Ticker
-// }
+type autofetchState struct {
+	url           string
+	fetchTicker   *time.Ticker
+	stopAutofetch chan bool
+}
 
 // NewApp creates a new App application struct
 func NewApp() *App {
@@ -34,14 +37,43 @@ func (a *App) startup(ctx context.Context) {
 	}
 
 	a.store = store
+
+	// start autofetches for all of the feeds in the store
+	a.autofetches = []autofetchState{}
+	feeds := a.Feeds()
+
+	for _, feed := range feeds {
+		fetchTicker := time.NewTicker(300 * time.Second)
+		stopAutofetch := make(chan bool)
+
+		go func() {
+			for {
+				select {
+				case <-stopAutofetch:
+					return
+				case <-fetchTicker.C:
+					log.Printf("autofetching feed from %s...", feed.Url)
+					a.store.UpdateFeedFromWeb(feed.Url)
+					wailsrt.EventsEmit(a.ctx, "feed-list/updated")
+				}
+			}
+		}()
+
+		a.autofetches = append(a.autofetches, autofetchState{
+			url:           feed.Url,
+			fetchTicker:   fetchTicker,
+			stopAutofetch: stopAutofetch,
+		})
+	}
 }
 
 type FeedViewModel struct {
-	Url            string
-	FeedTitle      string
-	LastUpdatedISO *string
-	ArticleTitle   string
-	ArticleLede    string
+	Url                     string
+	FeedTitle               string
+	LastUpdatedISO          *string
+	ArticleTitle            string
+	ArticleLede             string
+	LatestArticlePubDateISO string
 }
 
 type ArticleViewModel struct {
@@ -94,12 +126,19 @@ func (a *App) Feeds() []FeedViewModel {
 				articleDescription = articles[0].Description
 			}
 
+			latestArticlePubDateISO := time.Unix(0, 0).Format(time.RFC3339)
+
+			if articles[0].PubDate != nil {
+				latestArticlePubDateISO = articles[0].PubDate.Format(time.RFC3339)
+			}
+
 			feedVMs = append(feedVMs, FeedViewModel{
-				Url:            feed.URL,
-				FeedTitle:      effectiveTitle,
-				LastUpdatedISO: lastUpdatedISO,
-				ArticleTitle:   articleTitle,
-				ArticleLede:    articleDescription,
+				Url:                     feed.URL,
+				FeedTitle:               effectiveTitle,
+				LastUpdatedISO:          lastUpdatedISO,
+				ArticleTitle:            articleTitle,
+				ArticleLede:             articleDescription,
+				LatestArticlePubDateISO: latestArticlePubDateISO,
 			})
 		}
 
