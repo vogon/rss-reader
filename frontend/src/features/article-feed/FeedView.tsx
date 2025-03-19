@@ -5,11 +5,14 @@ import { AbsoluteTimestamp } from "../../components/AbsoluteTimestamp";
 import { Cog6ToothIcon, GlobeAltIcon, MinusCircleIcon } from "@heroicons/react/24/outline";
 import { BrowserOpenURL } from "../../../wailsjs/runtime/runtime";
 import DOMPurify from "dompurify";
-import { Button } from "@headlessui/react";
+import { Button, Checkbox, Dialog, DialogPanel, DialogTitle, Field, Fieldset, Input, Label } from "@headlessui/react";
+import { useState } from "react";
+import classNames from "classnames";
 
 export function FeedView() {
     const feedListState = useAppSelector(selectFeedListState);
     const articles = useAppSelector(selectArticles);
+    const [isFeedOptionsOpen, setIsFeedOptionsOpen] = useState<boolean>(false);
 
     const activeFeed = feedListState.activeFeed ? feedListState.feeds[feedListState.activeFeed] : null;
 
@@ -17,6 +20,46 @@ export function FeedView() {
     const entityDecodingScratchpad = document.createElement("div");
 
     return <div className="p-4">
+        <Dialog open={isFeedOptionsOpen} onClose={() => setIsFeedOptionsOpen(false)}>
+            <dialog className={classNames("modal", { "modal-open": isFeedOptionsOpen })}>
+                <DialogPanel className="modal-box">
+                    <form className="flex flex-col">
+                        <DialogTitle className="text-xl font-bold">
+                            feed settings
+                        </DialogTitle>
+
+                        <Fieldset className="fieldset w-full border p-2">
+                            <legend className="fieldset-legend m-2">Display article fields</legend>
+
+                            <Field>
+                                <Label className="label">description</Label>
+                                <Input type="checkbox" className="toggle" />
+                            </Field>
+
+                            <Field>
+                                <Label className="label">content</Label>
+                                <Input as="select" className="select">
+                                    <option>always</option>
+                                    <option selected>if description is empty</option>
+                                    <option>never</option>
+                                </Input>
+                            </Field>
+
+                            <Field>
+                                <Label className="label">categories</Label>
+                                <Input type="checkbox" className="toggle" />
+                            </Field>
+                        </Fieldset>
+
+                        <div className="modal-action">
+                            <button className="btn" onClick={() => setIsFeedOptionsOpen(false)}>cancel</button>
+                            <button className="btn btn-accent" type="submit">save</button>
+                        </div>
+                    </form>
+                </DialogPanel>
+            </dialog>
+        </Dialog>
+
         <header className="flex flex-row">
             {activeFeed ?
                 <>
@@ -25,7 +68,7 @@ export function FeedView() {
                         <h2 className="text-lg italic">updated at <AbsoluteTimestamp timestampISO={activeFeed.LastUpdatedISO} /></h2>
                     </div>
                     <div className="flex flex-row flex-1 gap-4 justify-end items-center">
-                        <Button className="btn btn-secondary">
+                        <Button className="btn btn-secondary" onClick={() => setIsFeedOptionsOpen(true)}>
                             <Cog6ToothIcon width="24" />
                             feed settings
                         </Button>
