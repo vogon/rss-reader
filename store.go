@@ -29,7 +29,9 @@ type article struct {
 	Title       string     `clover:"title"`
 	Link        string     `clover:"link"`
 	Description string     `clover:"description"`
+	Content     string     `clover:"content"`
 	PubDate     *time.Time `clover:"pubDate"`
+	Categories  []string   `clover:"categories"`
 }
 
 func NewStore() (*Store, error) {
@@ -137,7 +139,9 @@ func (store *Store) updateArticleFromItem(item *gofeed.Item, feedURL string) err
 		"title":       item.Title,
 		"link":        item.Link,
 		"description": item.Description,
+		"content":     item.Content,
 		"pubDate":     item.PublishedParsed,
+		"categories":  item.Categories,
 	}
 
 	if exists {

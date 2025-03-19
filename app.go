@@ -82,7 +82,9 @@ type ArticleViewModel struct {
 	Title       string
 	Link        string
 	Description string
+	Content     string
 	PubDateISO  string
+	Categories  []string
 }
 
 func (a *App) AddFeed(url string) error {
@@ -113,7 +115,7 @@ func (a *App) Feeds() []FeedViewModel {
 			effectiveTitle := "(no title)"
 			lastUpdatedISO = nil
 			articleTitle := "(no articles)"
-			articleDescription := ""
+			articleLede := ""
 
 			if feed.Title != nil {
 				effectiveTitle = *feed.Title
@@ -130,7 +132,12 @@ func (a *App) Feeds() []FeedViewModel {
 				log.Printf("error loading latest article for feed %s: %s", feed.URL, articleErr)
 			} else if len(articles) > 0 {
 				articleTitle = articles[0].Title
-				articleDescription = articles[0].Description
+
+				if len(articles[0].Description) > 0 {
+					articleLede = articles[0].Description
+				} else {
+					articleLede = articles[0].Content
+				}
 			}
 
 			latestArticlePubDateISO := time.Unix(0, 0).Format(time.RFC3339)
@@ -144,7 +151,7 @@ func (a *App) Feeds() []FeedViewModel {
 				FeedTitle:               effectiveTitle,
 				LastUpdatedISO:          lastUpdatedISO,
 				ArticleTitle:            articleTitle,
-				ArticleLede:             articleDescription,
+				ArticleLede:             articleLede,
 				LatestArticlePubDateISO: latestArticlePubDateISO,
 			})
 		}
@@ -175,7 +182,9 @@ func (a *App) ArticlesForFeed(url string) []ArticleViewModel {
 				Title:       article.Title,
 				Link:        article.Link,
 				Description: article.Description,
+				Content:     article.Content,
 				PubDateISO:  pubDateISO,
+				Categories:  article.Categories,
 			})
 		}
 
