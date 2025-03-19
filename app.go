@@ -88,7 +88,14 @@ type ArticleViewModel struct {
 func (a *App) AddFeed(url string) error {
 	log.Printf("AddFeed(%s)", url)
 
-	return a.store.UpdateFeedFromWeb(url)
+	err := a.store.UpdateFeedFromWeb(url)
+
+	if err != nil {
+		return err
+	} else {
+		wailsrt.EventsEmit(a.ctx, "feed-list/updated")
+		return nil
+	}
 }
 
 func (a *App) Feeds() []FeedViewModel {
