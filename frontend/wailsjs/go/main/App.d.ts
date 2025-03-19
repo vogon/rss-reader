@@ -4,4 +4,6 @@ import {main} from '../models';
 
 export function AddFeed(arg1:string):Promise<void>;
 
+export function ArticlesForFeed(arg1:string):Promise<Array<main.ArticleViewModel>>;
+
 export function Feeds():Promise<Array<main.FeedViewModel>>;

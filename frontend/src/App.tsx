@@ -1,40 +1,53 @@
 import { Dialog, DialogPanel, DialogTitle, Description, Input } from "@headlessui/react";
-import { Bars3Icon, PlusCircleIcon } from "@heroicons/react/24/outline";
+import { ArrowPathIcon, Bars3Icon, PlusCircleIcon } from "@heroicons/react/24/outline";
 import classnames from "classnames";
 import { useEffect, useState } from 'react';
 import { useForm } from "react-hook-form";
 import { main } from "../wailsjs/go/models";
 import { AddFeed, Feeds } from "../wailsjs/go/main/App";
 import { FeedCard, FeedCardProps } from "./FeedCard";
+import { useAppDispatch, useAppSelector } from "./app/hooks";
+import { fetchFeedList, selectFeedListState } from "./features/feed-list/feed-list-slice";
+import { selectArticles } from "./features/article-feed/article-feed-slice";
 
 type AddFeedFormData = {
     url: string
 };
 
 function App() {
-    const [feeds, updateFeeds] = useState<main.FeedViewModel[]>([]);
+    const dispatch = useAppDispatch();
+    const feedListState = useAppSelector(selectFeedListState);
+    const articles = useAppSelector(selectArticles);
     const [isAddFeedOpen, setIsAddFeedOpen] = useState<boolean>(false);
     const { register, handleSubmit } = useForm<AddFeedFormData>({
         defaultValues: {
             url: ""
         }
-    })
+    });
 
-    function refreshFeeds() {
-        Feeds().then(async (newFeeds) => {
-            console.log(newFeeds);
-            updateFeeds(newFeeds);
-        });
+    const sortedFeedList = Object.values(feedListState.feeds).
+        sort((a, b) => a.FeedTitle.localeCompare(b.FeedTitle));
+
+    function updateFeedsFromStore() {
+        dispatch(fetchFeedList());
+    }
+
+    async function refreshAllFeeds() {
+        for (const feed of Object.values(feedListState.feeds)) {
+            await AddFeed(feed.Url);
+        }
+
+        dispatch(fetchFeedList());
     }
 
     useEffect(() => {
-        refreshFeeds();
+        updateFeedsFromStore();
     }, []);
 
     function onAddFeedSubmit(data: AddFeedFormData) {
         AddFeed(data.url);
         setIsAddFeedOpen(false);
-        refreshFeeds();
+        updateFeedsFromStore();
     }
 
     return (
@@ -60,43 +73,44 @@ function App() {
             </Dialog>
 
             {/* left pane */}
-            <div className="flex flex-col w-1/3 max-w-xs bg-base-200 p-2 overflow-auto">
-                {/* menu bar */}
-                {/* <div className="flex flex-row">
-                    <div className="dropdown dropdown-start">
-                        <div tabIndex={0} role="button" className="btn btn-square btn-ghost">
-                            <Bars3Icon width="24" />
-                        </div>
-                        <ul tabIndex={0} className="menu dropdown-content bg-base-200 rounded-box border-1 z-1 w-3xs">
-                            <li>menu item</li>
-                        </ul>
-                    </div>
-
-                    <div className="flex-1"/>
-
-                    <div className="btn btn-circle btn-accent">
-                        <PlusCircleIcon width="24" />
-                    </div>
-                </div> */}
-
+            <div className="flex flex-col w-1/3 max-w-xs bg-base-200 overflow-auto">
                 <ul>
                     {
-                        feeds.map((feed, index) => <li key={index}>
+                        sortedFeedList.map((feed, index) => <li key={index}>
                             {index != 0 ? <hr/> : null}
                             <FeedCard feed={feed} />
                         </li>)
                     }
                 </ul>
 
-                <button className="btn btn-block border-accent text-accent" onClick={() => setIsAddFeedOpen(true)}>
-                    <PlusCircleIcon width="24" />
-                    add feed
-                </button>
+                <div className="flex flex-row gap-2 pt-2 px-2">
+                    <button className="btn flex-1 border-accent text-accent" onClick={() => setIsAddFeedOpen(true)}>
+                        <PlusCircleIcon width="24" />
+                        add feed
+                    </button>
+
+                    <button className="btn btn-square border-neutral-content" onClick={() => refreshAllFeeds()}>
+                        <ArrowPathIcon width="24" />
+                    </button>
+                </div>
             </div>
 
             {/* main pane */}
-            <div className="flex-1">
-                main pane
+            <div className="flex flex-col gap-12 flex-1 overflow-auto">
+                {
+                    articles.map((article) => {
+                        return <article key={article.GUID} className="border-2 rounded-box m-4 p-4">
+                            <h1 className="text-2xl font-bold">{article.Title}</h1>
+                            <p className="italic">published at {article.PubDateISO}</p>
+                            <p className="line-clamp-4">{article.Description}</p>
+                        </article>
+                    })
+                }
+                <ul>
+                    {
+                        articles.map((article) => <li key={article.GUID}>{article.Title}</li>)
+                    }
+                </ul>
             </div>
 
             {/* <div id="result" className="result">{resultText}</div>

@@ -23,6 +23,15 @@ type feed struct {
 	Title               *string    `clover:"title"`
 }
 
+type article struct {
+	GUID        string     `clover:"guid"`
+	FeedURL     string     `clover:"feedURL"`
+	Title       string     `clover:"title"`
+	Link        string     `clover:"link"`
+	Description string     `clover:"description"`
+	PubDate     *time.Time `clover:"pubDate"`
+}
+
 func NewStore() (*Store, error) {
 	cdb, err := c.Open("state.db")
 
@@ -38,6 +47,12 @@ func NewStore() (*Store, error) {
 	}
 
 	err = cdb.CreateCollection("feedItems")
+
+	if err != nil && !errors.Is(err, c.ErrCollectionExist) {
+		log.Fatal(err)
+	}
+
+	err = cdb.CreateCollection("articles")
 
 	if err != nil && !errors.Is(err, c.ErrCollectionExist) {
 		log.Fatal(err)
@@ -69,6 +84,70 @@ func (store *Store) ListFeeds() ([]*feed, error) {
 	}
 
 	return feeds, nil
+}
+
+func (store *Store) ArticlesForFeed(feedURL string, limit int) ([]*article, error) {
+	q := cq.
+		NewQuery("articles").
+		Where(cq.Field("feedURL").
+			Eq(feedURL)).
+		Sort(cq.SortOption{Field: "pubDate", Direction: -1})
+
+	if limit != 0 {
+		q = q.Limit(limit)
+	}
+
+	docs, err := store.clover.FindAll(q)
+	articles := []*article{}
+
+	if err != nil {
+		return nil, err
+	} else {
+		// load article from clover doc
+		for _, doc := range docs {
+			article := &article{}
+			docerr := doc.Unmarshal(article)
+
+			if docerr != nil {
+				log.Printf("error deserializing article: %s", docerr)
+				continue
+			} else {
+				articles = append(articles, article)
+			}
+		}
+
+		return articles, nil
+	}
+}
+
+func (store *Store) updateArticleFromItem(item *gofeed.Item, feedURL string) error {
+	// check for existing article, if any
+	q := cq.NewQuery("articles").Where(cq.Field("guid").Eq(item.GUID))
+	exists, loadErr := store.clover.Exists(q)
+
+	if loadErr != nil {
+		return loadErr
+	}
+
+	var err error
+
+	doc := map[string]interface{}{
+		"guid":        item.GUID,
+		"feedURL":     feedURL,
+		"title":       item.Title,
+		"link":        item.Link,
+		"description": item.Description,
+		"pubDate":     item.PublishedParsed,
+	}
+
+	if exists {
+		err = store.clover.Update(q, doc)
+	} else {
+		cloverDoc := cdoc.NewDocumentOf(doc)
+		_, err = store.clover.InsertOne("articles", cloverDoc)
+	}
+
+	return err
 }
 
 func (store *Store) UpdateFeedFromWeb(url string) error {
@@ -119,6 +198,15 @@ func (store *Store) UpdateFeedFromWeb(url string) error {
 
 			_, err = store.clover.InsertOne("feeds", doc)
 		}
+
+		// update all of the articles on the feed, too
+		for _, item := range newParse.Items {
+			articleErr := store.updateArticleFromItem(item, url)
+
+			if articleErr != nil {
+				log.Printf("error loading article %s: %s", item.GUID, articleErr)
+			}
+		}
 	}
 
 	return err
@@ -126,35 +214,5 @@ func (store *Store) UpdateFeedFromWeb(url string) error {
 
 func (store *Store) DropFeed(url string) {
 	store.clover.Delete(cq.NewQuery("feeds").Where(cq.Field("url").Eq(url)))
+	store.clover.Delete(cq.NewQuery("articles").Where(cq.Field("feedURL").Eq(url)))
 }
-
-// func loadFeedFromCloverDocument(doc *cdoc.Document) (*feed, error) {
-// 	feed := &feed{}
-// 	err := doc.Unmarshal(feed)
-
-// 	return feed, err
-// }
-
-// func fetchFromUrl(db *c.DB, url string) *feed {
-// 	// update record with new data
-// 	parser := gofeed.NewParser()
-// 	newParse, err := parser.ParseURL(url)
-
-// 	if err != nil {
-// 		return &feed{
-// 			URL:            url,
-// 			EverFetched:    true,
-// 			LastFetch:      time.Now(),
-// 			LastFetchError: err,
-// 			Title:          nil,
-// 		}
-// 	} else {
-// 		return &feed{
-// 			URL:            url,
-// 			EverFetched:    true,
-// 			LastFetch:      time.Now(),
-// 			LastFetchError: nil,
-// 			Title:          &newParse.Title,
-// 		}
-// 	}
-// }

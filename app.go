@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"time"
 )
 
 // App struct
@@ -36,11 +37,20 @@ func (a *App) startup(ctx context.Context) {
 }
 
 type FeedViewModel struct {
-	Url          string
-	FeedTitle    string
-	LastUpdated  string
-	ArticleTitle string
-	ArticleLede  string
+	Url            string
+	FeedTitle      string
+	LastUpdatedISO *string
+	ArticleTitle   string
+	ArticleLede    string
+}
+
+type ArticleViewModel struct {
+	GUID        string
+	FeedURL     string
+	Title       string
+	Link        string
+	Description string
+	PubDateISO  string
 }
 
 func (a *App) AddFeed(url string) error {
@@ -56,31 +66,73 @@ func (a *App) Feeds() []FeedViewModel {
 		log.Printf("Feeds(): error loading feeds: %s", err)
 		return []FeedViewModel{}
 	} else {
-		lipsum := `
-			Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
-			ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco
-			laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in
-			voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat
-			non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-		`
 		feedVMs := []FeedViewModel{}
 
-		for idx, feed := range feeds {
+		for _, feed := range feeds {
+			var lastUpdatedISO *string
+
 			effectiveTitle := "(no title)"
+			lastUpdatedISO = nil
+			articleTitle := "(no articles)"
+			articleDescription := ""
 
 			if feed.Title != nil {
 				effectiveTitle = *feed.Title
 			}
 
+			if feed.LastSuccessfulFetch != nil {
+				str := feed.LastSuccessfulFetch.Format(time.RFC3339)
+				lastUpdatedISO = &str
+			}
+
+			articles, articleErr := a.store.ArticlesForFeed(feed.URL, 1)
+
+			if articleErr != nil {
+				log.Printf("error loading latest article for feed %s: %s", feed.URL, articleErr)
+			} else if len(articles) > 0 {
+				articleTitle = articles[0].Title
+				articleDescription = articles[0].Description
+			}
+
 			feedVMs = append(feedVMs, FeedViewModel{
-				Url:          feed.URL,
-				FeedTitle:    effectiveTitle,
-				LastUpdated:  "69m",
-				ArticleTitle: "article title",
-				ArticleLede:  lipsum[idx*50:],
+				Url:            feed.URL,
+				FeedTitle:      effectiveTitle,
+				LastUpdatedISO: lastUpdatedISO,
+				ArticleTitle:   articleTitle,
+				ArticleLede:    articleDescription,
 			})
 		}
 
 		return feedVMs
+	}
+}
+
+func (a *App) ArticlesForFeed(url string) []ArticleViewModel {
+	articles, err := a.store.ArticlesForFeed(url, 0)
+
+	if err != nil {
+		log.Printf("error loading articles for feed %s: %s", url, err)
+		return []ArticleViewModel{}
+	} else {
+		articleVMs := []ArticleViewModel{}
+
+		for _, article := range articles {
+			pubDateISO := time.Unix(0, 0).Format(time.RFC3339)
+
+			if article.PubDate != nil {
+				pubDateISO = article.PubDate.Format(time.RFC3339)
+			}
+
+			articleVMs = append(articleVMs, ArticleViewModel{
+				GUID:        article.GUID,
+				FeedURL:     article.FeedURL,
+				Title:       article.Title,
+				Link:        article.Link,
+				Description: article.Description,
+				PubDateISO:  pubDateISO,
+			})
+		}
+
+		return articleVMs
 	}
 }
