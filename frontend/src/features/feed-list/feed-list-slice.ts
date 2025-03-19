@@ -39,7 +39,7 @@ export const feedListSlice = createSlice({
                 state.feeds[feed.Url] = feed;
             }
 
-            if (state.activeFeed && Object.getOwnPropertyNames(state.feeds).includes(state.activeFeed)) {
+            if (state.activeFeed && !Object.getOwnPropertyNames(state.feeds).includes(state.activeFeed)) {
                 state.activeFeed = null;
             }
         })
