@@ -1,4 +1,4 @@
-import { Dialog, DialogPanel, DialogTitle, Description, Input } from "@headlessui/react";
+import { Dialog, DialogPanel, DialogTitle, Input, Field, Label } from "@headlessui/react";
 import { ArrowPathIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 import classnames from "classnames";
 import { useEffect, useState } from 'react';
@@ -50,10 +50,11 @@ function App() {
                             <DialogTitle>
                                 <h3 className="text-xl font-bold">Add a new feed</h3>
                             </DialogTitle>
-                            <Description>
-                                <p className="pt-4">URL of feed to add:</p>
-                            </Description>
-                            <Input type="url" className="input w-full" {...register("url")} />
+                            <Field className="pt-4">
+                                <Label>URL of feed to add:</Label>
+                                <Input type="url" className="input w-full" {...register("url")} />
+                            </Field>
+                            
                             <div className="modal-action">
                                 <button className="btn" onClick={() => setIsAddFeedOpen(false)}>cancel</button>
                                 <button className="btn btn-accent" type="submit">ok</button>
