@@ -1,5 +1,4 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import type { PayloadAction } from "@reduxjs/toolkit";
 import { main } from "../../../wailsjs/go/models";
 import { ArticlesForFeed, Feeds } from "../../../wailsjs/go/main/App";
 
