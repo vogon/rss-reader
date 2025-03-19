@@ -1,14 +1,12 @@
 import { Dialog, DialogPanel, DialogTitle, Description, Input } from "@headlessui/react";
-import { ArrowPathIcon, Bars3Icon, PlusCircleIcon } from "@heroicons/react/24/outline";
+import { ArrowPathIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 import classnames from "classnames";
 import { useEffect, useState } from 'react';
 import { useForm } from "react-hook-form";
-import { main } from "../wailsjs/go/models";
-import { AddFeed, Feeds } from "../wailsjs/go/main/App";
-import { FeedCard, FeedCardProps } from "./features/feed-list/FeedCard";
+import { AddFeed } from "../wailsjs/go/main/App";
+import { FeedCard } from "./features/feed-list/FeedCard";
 import { useAppDispatch, useAppSelector } from "./app/hooks";
 import { fetchFeedList, selectFeedListState } from "./features/feed-list/feed-list-slice";
-import { selectArticles } from "./features/article-feed/article-feed-slice";
 import { FeedView } from "./features/article-feed/FeedView";
 
 type AddFeedFormData = {
@@ -28,26 +26,19 @@ function App() {
     const sortedFeedList = Object.values(feedListState.feeds).
         sort((a, b) => a.FeedTitle.localeCompare(b.FeedTitle));
 
-    function updateFeedsFromStore() {
-        dispatch(fetchFeedList());
-    }
-
     async function refreshAllFeeds() {
         for (const feed of Object.values(feedListState.feeds)) {
             await AddFeed(feed.Url);
         }
-
-        dispatch(fetchFeedList());
     }
 
     useEffect(() => {
-        updateFeedsFromStore();
+        dispatch(fetchFeedList());
     }, []);
 
     function onAddFeedSubmit(data: AddFeedFormData) {
         AddFeed(data.url);
         setIsAddFeedOpen(false);
-        updateFeedsFromStore();
     }
 
     return (
@@ -99,12 +90,6 @@ function App() {
             <div className="flex flex-col gap-12 flex-1 overflow-auto">
                 <FeedView />
             </div>
-
-            {/* <div id="result" className="result">{resultText}</div>
-            <div id="input" className="input-box">
-                <input id="name" className="input" onChange={updateName} autoComplete="off" name="input" type="text"/>
-                <button className="btn" onClick={greet}>Greet</button>
-            </div> */}
         </div>
     )
 }
