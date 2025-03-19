@@ -47,8 +47,8 @@ function App() {
                 <dialog className={classnames("modal", { "modal-open": isAddFeedOpen })}>
                     <DialogPanel className="modal-box">
                         <form onSubmit={handleSubmit(onAddFeedSubmit)}>
-                            <DialogTitle>
-                                <h3 className="text-xl font-bold">Add a new feed</h3>
+                            <DialogTitle className="text-xl font-bold">
+                                Add a new feed
                             </DialogTitle>
                             <Field className="pt-4">
                                 <Label>URL of feed to add:</Label>
