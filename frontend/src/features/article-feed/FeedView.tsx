@@ -2,6 +2,8 @@ import { useAppSelector } from "../../app/hooks";
 import { selectFeedListState } from "../feed-list/feed-list-slice";
 import { selectArticles } from "./article-feed-slice";
 import { AbsoluteTimestamp } from "../../components/AbsoluteTimestamp";
+import { GlobeAltIcon } from "@heroicons/react/24/outline";
+import { BrowserOpenURL } from "../../../wailsjs/runtime/runtime";
 
 export function FeedView() {
     const feedListState = useAppSelector(selectFeedListState);
@@ -20,7 +22,16 @@ export function FeedView() {
         {
             articles.map((article) => {
                 return <article key={article.GUID} className="border-2 rounded-box my-4 p-4">
-                    <h1 className="text-2xl font-bold">{article.Title}</h1>
+                    <span className="text-2xl font-bold">
+                        {article.Title}&nbsp;
+                        
+                        <a 
+                            className="inline-block text-primary cursor-pointer" 
+                            onClick={() => BrowserOpenURL(article.Link)}
+                        >
+                            <GlobeAltIcon width="24" />
+                        </a>
+                    </span>
                     <p className="italic">published at <AbsoluteTimestamp timestampISO={article.PubDateISO} /></p>
                     <p className="line-clamp-4">{article.Description}</p>
                 </article>
